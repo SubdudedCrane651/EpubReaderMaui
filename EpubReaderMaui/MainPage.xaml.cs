@@ -2,6 +2,7 @@
 using Microsoft.Maui.Storage;
 using VersOne.Epub;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace EpubReaderMaui;
 
@@ -18,11 +19,7 @@ public partial class MainPage : ContentPage
 
     private async void OpenButton_Clicked(object sender, EventArgs e)
     {
-        var result = await FilePicker.PickAsync(new PickOptions
-        {
-            PickerTitle = "Select EPUB file"
-        });
-
+        var result = await FilePicker.PickAsync();
         if (result == null)
             return;
 
@@ -31,20 +28,20 @@ public partial class MainPage : ContentPage
 
         _chapterTitles.Clear();
         _chapterHtml.Clear();
-        ChaptersView.ItemsSource = null;
+
+        int chapterNumber = 1;
 
         foreach (var chapter in book.ReadingOrder)
         {
-            string html = chapter.Content; // XHTML
-
+            string html = chapter.Content;
             if (string.IsNullOrWhiteSpace(html))
                 continue;
 
             _chapterHtml.Add(html);
 
-            // VersOne.Epub 2.x: FilePath is the ONLY path property
-            string title = Path.GetFileNameWithoutExtension(chapter.FilePath);
-            _chapterTitles.Add(title);
+            // EXACTLY WHAT YOU ASKED FOR:
+            _chapterTitles.Add($"CHAPTER {chapterNumber}");
+            chapterNumber++;
         }
 
         ChaptersView.ItemsSource = _chapterTitles;
@@ -52,6 +49,27 @@ public partial class MainPage : ContentPage
         _currentChapter = 0;
         ChaptersView.SelectedItem = _chapterTitles[0];
         DisplayChapter(0);
+    }
+
+    private string ExtractTitle(string html)
+    {
+        // Try <title>
+        var titleMatch = Regex.Match(html, @"<title>(.*?)</title>", RegexOptions.IgnoreCase);
+        if (titleMatch.Success)
+            return titleMatch.Groups[1].Value.Trim();
+
+        // Try <h1>
+        var h1Match = Regex.Match(html, @"<h1[^>]*>(.*?)</h1>", RegexOptions.IgnoreCase);
+        if (h1Match.Success)
+            return h1Match.Groups[1].Value.Trim();
+
+        // Try <h2>
+        var h2Match = Regex.Match(html, @"<h2[^>]*>(.*?)</h2>", RegexOptions.IgnoreCase);
+        if (h2Match.Success)
+            return h2Match.Groups[1].Value.Trim();
+
+        // Fallback
+        return "Untitled Chapter";
     }
 
     private void DisplayChapter(int index)
