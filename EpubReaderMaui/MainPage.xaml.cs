@@ -1,5 +1,4 @@
 ﻿using Microsoft.Maui.Controls;
-using Microsoft.Maui.Storage;
 using System.Text.Json;
 using VersOne.Epub;
 
@@ -16,6 +15,7 @@ public partial class MainPage : ContentPage
     private readonly List<string> _chapterHtml = new();
     private int _currentChapter = 0;
     private bool _chaptersVisible = true;
+    private ReaderProgress _progress = new();
 
     public MainPage()
     {
@@ -44,8 +44,22 @@ public partial class MainPage : ContentPage
             string base64 = Convert.ToBase64String(book.CoverImage);
             string coverHtml = $@"
 <html>
-<body style='text-align:center; padding:20px;'>
-    <img src='data:image/jpeg;base64,{base64}' style='max-width:100%; height:auto;' />
+<head>
+<meta charset='utf-8'>
+<style>
+body {{
+    font-family: sans-serif;
+    text-align:center;
+    padding:20px;
+}}
+img {{
+    max-width:100%;
+    height:auto;
+}}
+</style>
+</head>
+<body>
+    <img src='data:image/jpeg;base64,{base64}' />
 </body>
 </html>";
 
@@ -61,35 +75,7 @@ public partial class MainPage : ContentPage
             if (string.IsNullOrWhiteSpace(html))
                 continue;
 
-            _chapterHtml.Add(html);
-            _chapterTitles.Add($"CHAPTER {chapterNumber}");
-            chapterNumber++;
-        }
-
-        ChaptersView.ItemsSource = _chapterTitles;
-
-        // LOAD PROGRESS
-        _currentChapter = LoadProgress();
-        if (_currentChapter < 0 || _currentChapter >= _chapterHtml.Count)
-            _currentChapter = 0;
-
-        ChaptersView.SelectedItem = _chapterTitles[_currentChapter];
-        DisplayChapter(_currentChapter);
-    }
-
-    // -------------------------------
-    // DISPLAY CHAPTER
-    // -------------------------------
-    private void DisplayChapter(int index)
-    {
-        if (index < 0 || index >= _chapterHtml.Count)
-            return;
-
-        _currentChapter = index;
-
-        string bodyHtml = _chapterHtml[index];
-
-        string finalHtml = $@"
+            string finalHtml = $@"
 <html>
 <head>
 <meta charset='utf-8'>
@@ -106,17 +92,45 @@ img {{
 </style>
 </head>
 <body>
-{bodyHtml}
-<div style='text-align:center; margin-top:20px; font-weight:bold;'>
-Chapter {index + 1} / {_chapterHtml.Count}
-</div>
+{html}
 </body>
 </html>";
 
-        HtmlView.Source = new HtmlWebViewSource { Html = finalHtml };
+            _chapterHtml.Add(finalHtml);
+            _chapterTitles.Add($"CHAPTER {chapterNumber}");
+            chapterNumber++;
+        }
+
+        if (_chapterHtml.Count == 0)
+            return;
+
+        ChaptersView.ItemsSource = _chapterTitles;
+
+        // LOAD PROGRESS
+        _progress = LoadProgressInternal();
+        if (_progress.Chapter < 0 || _progress.Chapter >= _chapterHtml.Count)
+            _progress.Chapter = 0;
+
+        _currentChapter = _progress.Chapter;
+        ChaptersView.SelectedItem = _chapterTitles[_currentChapter];
+        DisplayChapter(_currentChapter);
+    }
+
+    // -------------------------------
+    // DISPLAY CHAPTER
+    // -------------------------------
+    private void DisplayChapter(int index)
+    {
+        if (index < 0 || index >= _chapterHtml.Count)
+            return;
+
+        _currentChapter = index;
+
+        HtmlView.Source = new HtmlWebViewSource { Html = _chapterHtml[index] };
         PageLabel.Text = $"Chapter {index + 1} / {_chapterHtml.Count}";
 
-        SaveProgress();
+        _progress.Chapter = _currentChapter;
+        SaveProgressInternal();
     }
 
     // -------------------------------
@@ -174,33 +188,42 @@ Chapter {index + 1} / {_chapterHtml.Count}
     // -------------------------------
     // SAVE / LOAD PROGRESS (JSON)
     // -------------------------------
-    private void SaveProgress()
+    private void SaveProgressInternal()
     {
         try
         {
-            var progress = new ReaderProgress { Chapter = _currentChapter };
-            string json = JsonSerializer.Serialize(progress);
-            string path = Path.Combine(FileSystem.AppDataDirectory, "progress.json");
+            string json = JsonSerializer.Serialize(_progress);
+            string path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "progress.json"
+            );
             File.WriteAllText(path, json);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Save error: " + ex.Message);
+        }
     }
 
-    private int LoadProgress()
+    private ReaderProgress LoadProgressInternal()
     {
         try
         {
-            string path = Path.Combine(FileSystem.AppDataDirectory, "progress.json");
+            string path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "progress.json"
+            );
+
             if (!File.Exists(path))
-                return 0;
+                return new ReaderProgress();
 
             string json = File.ReadAllText(path);
-            var progress = JsonSerializer.Deserialize<ReaderProgress>(json);
-            return progress?.Chapter ?? 0;
+            return JsonSerializer.Deserialize<ReaderProgress>(json) ?? new ReaderProgress();
         }
-        catch
+        catch (Exception ex)
         {
-            return 0;
+            Console.WriteLine("Load error: " + ex.Message);
+            return new ReaderProgress();
         }
     }
 }
