@@ -3,11 +3,11 @@
     x:Class="EpubReaderMaui.MainPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title="EPUB Reader (MAUI)">
+    Title="EPUB Reader (HTML)">
 
     <Grid RowDefinitions="*,Auto">
-        <Grid Grid.Row="0" ColumnDefinitions="200, *">
-            <!-- Chapter list -->
+        <Grid Grid.Row="0" ColumnDefinitions="220,*">
+
             <CollectionView
                 x:Name="ChaptersView"
                 SelectionMode="Single"
@@ -19,24 +19,11 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <!-- Text area -->
-            <ScrollView Grid.Column="1">
-                <VerticalStackLayout Padding="10">
-                    <Label
-                        x:Name="ContentLabel"
-                        FontSize="16"
-                        LineBreakMode="WordWrap" />
-                    <Label
-                        x:Name="PageLabel"
-                        HorizontalOptions="Center"
-                        Margin="0,20,0,0"
-                        FontAttributes="Bold"
-                        FontSize="14" />
-                </VerticalStackLayout>
-            </ScrollView>
+            <WebView
+                x:Name="HtmlView"
+                Grid.Column="1" />
         </Grid>
 
-        <!-- Bottom controls -->
         <HorizontalStackLayout
             Grid.Row="1"
             Padding="8"
@@ -44,8 +31,14 @@
             HorizontalOptions="Center">
 
             <Button Text="Open EPUB" Clicked="OpenButton_Clicked" />
-            <Button Text="◀ Prev Page" Clicked="PrevButton_Clicked" />
-            <Button Text="Next Page ▶" Clicked="NextButton_Clicked" />
+            <Button Text="◀ Prev Chapter" Clicked="PrevButton_Clicked" />
+            <Button Text="Next Chapter ▶" Clicked="NextButton_Clicked" />
+
+            <Label
+                x:Name="PageLabel"
+                FontAttributes="Bold"
+                FontSize="14"
+                VerticalOptions="Center" />
         </HorizontalStackLayout>
     </Grid>
 </ContentPage>
