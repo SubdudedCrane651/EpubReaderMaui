@@ -15,12 +15,16 @@ public partial class MainPage : ContentPage
     private readonly List<string> _chapterTitles = new();
     private readonly List<string> _chapterHtml = new();
     private int _currentChapter = 0;
+    private bool _chaptersVisible = true;
 
     public MainPage()
     {
         InitializeComponent();
     }
 
+    // -------------------------------
+    // OPEN EPUB
+    // -------------------------------
     private async void OpenButton_Clicked(object sender, EventArgs e)
     {
         var result = await FilePicker.PickAsync();
@@ -34,7 +38,7 @@ public partial class MainPage : ContentPage
         _chapterHtml.Clear();
         ChaptersView.ItemsSource = null;
 
-        // COVER (if exists)
+        // COVER PAGE
         if (book.CoverImage != null && book.CoverImage.Length > 0)
         {
             string base64 = Convert.ToBase64String(book.CoverImage);
@@ -44,11 +48,12 @@ public partial class MainPage : ContentPage
     <img src='data:image/jpeg;base64,{base64}' style='max-width:100%; height:auto;' />
 </body>
 </html>";
+
             _chapterHtml.Add(coverHtml);
             _chapterTitles.Add("COVER");
         }
 
-        // CHAPTERS from ReadingOrder
+        // CHAPTERS
         int chapterNumber = 1;
         foreach (var chapter in book.ReadingOrder)
         {
@@ -61,12 +66,9 @@ public partial class MainPage : ContentPage
             chapterNumber++;
         }
 
-        if (_chapterHtml.Count == 0)
-            return;
-
         ChaptersView.ItemsSource = _chapterTitles;
 
-        // Load last progress
+        // LOAD PROGRESS
         _currentChapter = LoadProgress();
         if (_currentChapter < 0 || _currentChapter >= _chapterHtml.Count)
             _currentChapter = 0;
@@ -75,6 +77,9 @@ public partial class MainPage : ContentPage
         DisplayChapter(_currentChapter);
     }
 
+    // -------------------------------
+    // DISPLAY CHAPTER
+    // -------------------------------
     private void DisplayChapter(int index)
     {
         if (index < 0 || index >= _chapterHtml.Count)
@@ -114,6 +119,9 @@ Chapter {index + 1} / {_chapterHtml.Count}
         SaveProgress();
     }
 
+    // -------------------------------
+    // NAVIGATION
+    // -------------------------------
     private void NextButton_Clicked(object sender, EventArgs e)
     {
         if (_currentChapter < _chapterHtml.Count - 1)
@@ -144,6 +152,28 @@ Chapter {index + 1} / {_chapterHtml.Count}
         }
     }
 
+    // -------------------------------
+    // TOGGLE CHAPTER LIST
+    // -------------------------------
+    private void ToggleChapters_Clicked(object sender, EventArgs e)
+    {
+        _chaptersVisible = !_chaptersVisible;
+
+        if (_chaptersVisible)
+        {
+            ContentGrid.ColumnDefinitions[0].Width = new GridLength(220);
+            ChaptersView.IsVisible = true;
+        }
+        else
+        {
+            ContentGrid.ColumnDefinitions[0].Width = new GridLength(0);
+            ChaptersView.IsVisible = false;
+        }
+    }
+
+    // -------------------------------
+    // SAVE / LOAD PROGRESS (JSON)
+    // -------------------------------
     private void SaveProgress()
     {
         try
@@ -153,10 +183,7 @@ Chapter {index + 1} / {_chapterHtml.Count}
             string path = Path.Combine(FileSystem.AppDataDirectory, "progress.json");
             File.WriteAllText(path, json);
         }
-        catch
-        {
-            // ignore errors for now
-        }
+        catch { }
     }
 
     private int LoadProgress()

@@ -5,12 +5,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Title="EPUB Reader">
 
-    <Grid RowDefinitions="*,Auto">
-        <Grid Grid.Row="0" ColumnDefinitions="220,*">
+    <Grid x:Name="RootGrid" RowDefinitions="*,Auto">
+        <Grid Grid.Row="0" x:Name="ContentGrid" ColumnDefinitions="220,*">
 
-            <!-- Chapter list -->
+            <!-- LEFT PANE: CHAPTER LIST -->
             <CollectionView
                 x:Name="ChaptersView"
+                Grid.Column="0"
                 SelectionMode="Single"
                 SelectionChanged="ChaptersView_SelectionChanged">
                 <CollectionView.ItemTemplate>
@@ -20,13 +21,13 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <!-- HTML viewer -->
+            <!-- RIGHT PANE: HTML VIEWER -->
             <WebView
                 x:Name="HtmlView"
                 Grid.Column="1" />
         </Grid>
 
-        <!-- Bottom controls -->
+        <!-- BOTTOM BAR -->
         <HorizontalStackLayout
             Grid.Row="1"
             Padding="8"
@@ -36,6 +37,7 @@
             <Button Text="Open EPUB" Clicked="OpenButton_Clicked" />
             <Button Text="◀ Prev" Clicked="PrevButton_Clicked" />
             <Button Text="Next ▶" Clicked="NextButton_Clicked" />
+            <Button Text="Toggle Chapters" Clicked="ToggleChapters_Clicked" />
 
             <Label
                 x:Name="PageLabel"
