@@ -8,6 +8,7 @@
     <Grid RowDefinitions="*,Auto">
         <Grid Grid.Row="0" ColumnDefinitions="220,*">
 
+            <!-- Chapter list -->
             <CollectionView
                 x:Name="ChaptersView"
                 SelectionMode="Single"
@@ -19,11 +20,13 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
+            <!-- HTML viewer -->
             <WebView
                 x:Name="HtmlView"
                 Grid.Column="1" />
         </Grid>
 
+        <!-- Bottom controls -->
         <HorizontalStackLayout
             Grid.Row="1"
             Padding="8"

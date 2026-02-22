@@ -1,10 +1,14 @@
 ﻿using Microsoft.Maui.Controls;
 using Microsoft.Maui.Storage;
+using System.Text.Json;
 using VersOne.Epub;
-using System.IO;
-using System.Text.RegularExpressions;
 
 namespace EpubReaderMaui;
+
+public class ReaderProgress
+{
+    public int Chapter { get; set; }
+}
 
 public partial class MainPage : ContentPage
 {
@@ -28,9 +32,24 @@ public partial class MainPage : ContentPage
 
         _chapterTitles.Clear();
         _chapterHtml.Clear();
+        ChaptersView.ItemsSource = null;
 
+        // COVER (if exists)
+        if (book.CoverImage != null && book.CoverImage.Length > 0)
+        {
+            string base64 = Convert.ToBase64String(book.CoverImage);
+            string coverHtml = $@"
+<html>
+<body style='text-align:center; padding:20px;'>
+    <img src='data:image/jpeg;base64,{base64}' style='max-width:100%; height:auto;' />
+</body>
+</html>";
+            _chapterHtml.Add(coverHtml);
+            _chapterTitles.Add("COVER");
+        }
+
+        // CHAPTERS from ReadingOrder
         int chapterNumber = 1;
-
         foreach (var chapter in book.ReadingOrder)
         {
             string html = chapter.Content;
@@ -38,38 +57,22 @@ public partial class MainPage : ContentPage
                 continue;
 
             _chapterHtml.Add(html);
-
-            // EXACTLY WHAT YOU ASKED FOR:
             _chapterTitles.Add($"CHAPTER {chapterNumber}");
             chapterNumber++;
         }
 
+        if (_chapterHtml.Count == 0)
+            return;
+
         ChaptersView.ItemsSource = _chapterTitles;
 
-        _currentChapter = 0;
-        ChaptersView.SelectedItem = _chapterTitles[0];
-        DisplayChapter(0);
-    }
+        // Load last progress
+        _currentChapter = LoadProgress();
+        if (_currentChapter < 0 || _currentChapter >= _chapterHtml.Count)
+            _currentChapter = 0;
 
-    private string ExtractTitle(string html)
-    {
-        // Try <title>
-        var titleMatch = Regex.Match(html, @"<title>(.*?)</title>", RegexOptions.IgnoreCase);
-        if (titleMatch.Success)
-            return titleMatch.Groups[1].Value.Trim();
-
-        // Try <h1>
-        var h1Match = Regex.Match(html, @"<h1[^>]*>(.*?)</h1>", RegexOptions.IgnoreCase);
-        if (h1Match.Success)
-            return h1Match.Groups[1].Value.Trim();
-
-        // Try <h2>
-        var h2Match = Regex.Match(html, @"<h2[^>]*>(.*?)</h2>", RegexOptions.IgnoreCase);
-        if (h2Match.Success)
-            return h2Match.Groups[1].Value.Trim();
-
-        // Fallback
-        return "Untitled Chapter";
+        ChaptersView.SelectedItem = _chapterTitles[_currentChapter];
+        DisplayChapter(_currentChapter);
     }
 
     private void DisplayChapter(int index)
@@ -107,6 +110,8 @@ Chapter {index + 1} / {_chapterHtml.Count}
 
         HtmlView.Source = new HtmlWebViewSource { Html = finalHtml };
         PageLabel.Text = $"Chapter {index + 1} / {_chapterHtml.Count}";
+
+        SaveProgress();
     }
 
     private void NextButton_Clicked(object sender, EventArgs e)
@@ -136,6 +141,39 @@ Chapter {index + 1} / {_chapterHtml.Count}
             int index = _chapterTitles.IndexOf(selected);
             if (index >= 0)
                 DisplayChapter(index);
+        }
+    }
+
+    private void SaveProgress()
+    {
+        try
+        {
+            var progress = new ReaderProgress { Chapter = _currentChapter };
+            string json = JsonSerializer.Serialize(progress);
+            string path = Path.Combine(FileSystem.AppDataDirectory, "progress.json");
+            File.WriteAllText(path, json);
+        }
+        catch
+        {
+            // ignore errors for now
+        }
+    }
+
+    private int LoadProgress()
+    {
+        try
+        {
+            string path = Path.Combine(FileSystem.AppDataDirectory, "progress.json");
+            if (!File.Exists(path))
+                return 0;
+
+            string json = File.ReadAllText(path);
+            var progress = JsonSerializer.Deserialize<ReaderProgress>(json);
+            return progress?.Chapter ?? 0;
+        }
+        catch
+        {
+            return 0;
         }
     }
 }
