@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="EpubReaderMaui.MainPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="EPUB Reader (MAUI)">
+
+    <Grid RowDefinitions="*,Auto">
+        <Grid Grid.Row="0" ColumnDefinitions="200, *">
+            <!-- Chapter list -->
+            <CollectionView
+                x:Name="ChaptersView"
+                SelectionMode="Single"
+                SelectionChanged="ChaptersView_SelectionChanged">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Label Text="{Binding}" Padding="8" />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Text area -->
+            <ScrollView Grid.Column="1">
+                <VerticalStackLayout Padding="10">
+                    <Label
+                        x:Name="ContentLabel"
+                        FontSize="16"
+                        LineBreakMode="WordWrap" />
+                    <Label
+                        x:Name="PageLabel"
+                        HorizontalOptions="Center"
+                        Margin="0,20,0,0"
+                        FontAttributes="Bold"
+                        FontSize="14" />
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+
+        <!-- Bottom controls -->
+        <HorizontalStackLayout
+            Grid.Row="1"
+            Padding="8"
+            Spacing="10"
+            HorizontalOptions="Center">
+
+            <Button Text="Open EPUB" Clicked="OpenButton_Clicked" />
+            <Button Text="◀ Prev Page" Clicked="PrevButton_Clicked" />
+            <Button Text="Next Page ▶" Clicked="NextButton_Clicked" />
+        </HorizontalStackLayout>
+    </Grid>
+</ContentPage>
