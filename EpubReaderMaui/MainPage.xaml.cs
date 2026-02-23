@@ -24,6 +24,7 @@ public partial class MainPage : ContentPage
 
     private ReaderProgress _progress = new();
     private bool _chaptersVisible = true;
+    private bool _suppressSelection = false;
 
     private const int ParagraphsPerPage = 6;
 
@@ -107,7 +108,6 @@ public partial class MainPage : ContentPage
 
         if (_progress.BookHash == bookHash)
         {
-            // Find matching page hash
             bool found = false;
 
             for (int c = 0; c < _chapterPageHashes.Count; c++)
@@ -135,8 +135,13 @@ public partial class MainPage : ContentPage
             _progress = new ReaderProgress { BookHash = bookHash };
         }
 
+        // IMPORTANT: avoid SelectionChanged overriding restored page
+        _suppressSelection = true;
+
         ChaptersView.SelectedItem = _chapterTitles[_currentChapter];
         DisplayPage(_currentChapter, _currentPage);
+
+        _suppressSelection = false;
     }
 
     // -------------------------------
@@ -216,6 +221,9 @@ img {{
 
         _currentChapter = chapterIndex;
         _currentPage = pageIndex;
+
+        // Always save progress whenever a page is displayed
+        SaveCurrentProgress();
     }
 
     // -------------------------------
@@ -234,8 +242,6 @@ img {{
             DisplayPage(_currentChapter + 1, 0);
             ChaptersView.SelectedItem = _chapterTitles[_currentChapter];
         }
-
-        SaveCurrentProgress();
     }
 
     private void PrevButton_Clicked(object sender, EventArgs e)
@@ -251,17 +257,17 @@ img {{
             DisplayPage(prev, lastPage);
             ChaptersView.SelectedItem = _chapterTitles[_currentChapter];
         }
-
-        SaveCurrentProgress();
     }
 
     private void ChaptersView_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_suppressSelection)
+            return;
+
         if (e.CurrentSelection.FirstOrDefault() is string selected)
         {
             int index = _chapterTitles.IndexOf(selected);
             DisplayPage(index, 0);
-            SaveCurrentProgress();
         }
     }
 
