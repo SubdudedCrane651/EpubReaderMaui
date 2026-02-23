@@ -193,6 +193,9 @@ public partial class MainPage : ContentPage
         var pages = _chapterPages[chapterIndex];
         string bodyHtml = pages[pageIndex];
 
+        // ⭐ Add page number at the bottom of the HTML
+        string pageNumberHtml = $"<div style='margin-top:40px; text-align:center; opacity:0.6;'>Page {pageIndex + 1}</div>";
+
         string finalHtml = $@"
 <html>
 <head>
@@ -211,6 +214,7 @@ img {{
 </head>
 <body>
 {bodyHtml}
+{pageNumberHtml}   <!-- ⭐ Inserted here -->
 </body>
 </html>";
 
@@ -222,7 +226,6 @@ img {{
         _currentChapter = chapterIndex;
         _currentPage = pageIndex;
 
-        // Always save progress whenever a page is displayed
         SaveCurrentProgress();
     }
 
