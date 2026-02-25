@@ -31,6 +31,7 @@ public partial class MainPage : ContentPage
     public MainPage()
     {
         InitializeComponent();
+        DeviceDisplay.KeepScreenOn = true;
     }
 
     private string ComputeHash(string text)
