@@ -3,43 +3,93 @@
     x:Class="EpubReaderMaui.MainPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title="EPUB Reader">
+    BackgroundColor="White">
 
-    <Grid x:Name="RootGrid" RowDefinitions="*,Auto">
-        <Grid Grid.Row="0" x:Name="ContentGrid" ColumnDefinitions="220,*">
+    <Grid x:Name="ContentGrid" ColumnSpacing="0">
+        <Grid.ColumnDefinitions>
+            <!-- Chapter list column (can collapse to 0) -->
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-            <CollectionView
-                x:Name="ChaptersView"
-                Grid.Column="0"
-                SelectionMode="Single"
-                SelectionChanged="ChaptersView_SelectionChanged">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Label Text="{Binding}" Padding="8" />
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+        <!-- LEFT: Chapter List -->
+        <CollectionView
+            x:Name="ChaptersView"
+            Grid.Column="0"
+            SelectionMode="Single"
+            SelectionChanged="ChaptersView_SelectionChanged"
+            BackgroundColor="#f0f0f0">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Label
+                        Text="{Binding}"
+                        Padding="12"
+                        FontSize="16"
+                        TextColor="Black" />
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
 
+        <!-- RIGHT: Reader Area -->
+        <Grid Grid.Column="1" RowSpacing="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="60" />
+            </Grid.RowDefinitions>
+
+            <!-- WebView for HTML pages -->
             <WebView
                 x:Name="HtmlView"
-                Grid.Column="1" />
+                Grid.Row="0"
+                BackgroundColor="White" />
+
+            <!-- Bottom Controls -->
+            <Grid Grid.Row="1" Padding="10" ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Toggle Chapters -->
+                <Button
+                    Grid.Column="0"
+                    Text="☰"
+                    WidthRequest="50"
+                    Clicked="ToggleChapters_Clicked" />
+
+                <!-- Prev -->
+                <Button
+                    Grid.Column="1"
+                    Text="◀"
+                    WidthRequest="60"
+                    Clicked="PrevButton_Clicked" />
+
+                <!-- Next -->
+                <Button
+                    Grid.Column="2"
+                    Text="▶"
+                    WidthRequest="60"
+                    Clicked="NextButton_Clicked" />
+
+                <!-- Page Label -->
+                <Label
+                    x:Name="PageLabel"
+                    Grid.Column="3"
+                    VerticalOptions="Center"
+                    HorizontalOptions="Center"
+                    FontSize="16"
+                    TextColor="Black" />
+
+                <!-- Open EPUB -->
+                <Button
+                    Grid.Column="4"
+                    Text="Open"
+                    WidthRequest="80"
+                    Clicked="OpenButton_Clicked" />
+            </Grid>
         </Grid>
-
-        <HorizontalStackLayout
-            Grid.Row="1"
-            Padding="8"
-            Spacing="10"
-            HorizontalOptions="Center">
-
-            <Button Text="Open EPUB" Clicked="OpenButton_Clicked" />
-            <Button Text="◀ Prev" Clicked="PrevButton_Clicked" />
-            <Button Text="Next ▶" Clicked="NextButton_Clicked" />
-            <Button Text="Toggle Chapters" Clicked="ToggleChapters_Clicked" />
-
-            <Label
-                x:Name="PageLabel"
-                FontAttributes="Bold"
-                FontSize="14" />
-        </HorizontalStackLayout>
     </Grid>
 </ContentPage>

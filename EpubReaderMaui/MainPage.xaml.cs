@@ -1,4 +1,5 @@
 ﻿using Microsoft.Maui.Controls;
+using Microsoft.Maui.Devices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -18,6 +19,8 @@ public partial class MainPage : ContentPage
     private readonly List<string> _chapterTitles = new();
     private readonly List<List<string>> _chapterPages = new();
     private readonly List<List<string>> _chapterPageHashes = new();
+
+    private Dictionary<string, byte[]> _images = new();
 
     private int _currentChapter = 0;
     private int _currentPage = 0;
@@ -48,9 +51,23 @@ public partial class MainPage : ContentPage
         return Convert.ToHexString(bytes);
     }
 
-    // -------------------------------
-    // OPEN EPUB
-    // -------------------------------
+    // ⭐ Embed EPUB images into HTML as Base64
+    private string EmbedImages(string html)
+    {
+        foreach (var kv in _images)
+        {
+            string key = kv.Key;
+            string filename = key.Split('/').Last();
+            string base64 = Convert.ToBase64String(kv.Value);
+            string dataUrl = $"data:image/jpeg;base64,{base64}";
+
+            html = html.Replace($"src=\"{key}\"", $"src=\"{dataUrl}\"");
+            html = html.Replace($"src=\"{filename}\"", $"src=\"{dataUrl}\"");
+        }
+
+        return html;
+    }
+
     private async void OpenButton_Clicked(object sender, EventArgs e)
     {
         var result = await FilePicker.PickAsync();
@@ -59,7 +76,6 @@ public partial class MainPage : ContentPage
 
         using var stream = await result.OpenReadAsync();
 
-        // Compute book hash
         string bookHash = ComputeFileHash(stream);
         stream.Position = 0;
 
@@ -68,9 +84,22 @@ public partial class MainPage : ContentPage
         _chapterTitles.Clear();
         _chapterPages.Clear();
         _chapterPageHashes.Clear();
+        _images.Clear();
         ChaptersView.ItemsSource = null;
 
-        // COVER PAGE
+        // Replace this:
+        // foreach (var img in book.Content.Images)
+        // {
+        //     _images[img.Key] = img.Value.Content;
+        // }
+
+        // With this:
+        foreach (var img in book.Content.Images.Local)
+        {
+            _images[img.Key] = img.Content;
+        }
+
+        // ⭐ COVER PAGE
         if (book.CoverImage != null)
         {
             string base64 = Convert.ToBase64String(book.CoverImage);
@@ -84,13 +113,15 @@ public partial class MainPage : ContentPage
             _chapterPageHashes.Add(new List<string> { ComputeHash(html) });
         }
 
-        // CHAPTERS
+        // ⭐ CHAPTERS WITH IMAGES
         int chapterNumber = 1;
         foreach (var chapter in book.ReadingOrder)
         {
             string html = chapter.Content;
             if (string.IsNullOrWhiteSpace(html))
                 continue;
+
+            html = EmbedImages(html);
 
             var pages = PaginateChapter(html);
             var hashes = pages.Select(p => ComputeHash(p)).ToList();
@@ -104,7 +135,7 @@ public partial class MainPage : ContentPage
 
         ChaptersView.ItemsSource = _chapterTitles;
 
-        // LOAD PROGRESS
+        // ⭐ RESTORE PROGRESS
         _progress = LoadProgressInternal();
 
         if (_progress.BookHash == bookHash)
@@ -136,7 +167,6 @@ public partial class MainPage : ContentPage
             _progress = new ReaderProgress { BookHash = bookHash };
         }
 
-        // IMPORTANT: avoid SelectionChanged overriding restored page
         _suppressSelection = true;
 
         ChaptersView.SelectedItem = _chapterTitles[_currentChapter];
@@ -145,9 +175,7 @@ public partial class MainPage : ContentPage
         _suppressSelection = false;
     }
 
-    // -------------------------------
-    // PAGINATION
-    // -------------------------------
+    // ⭐ Paginate by paragraphs (keeps images intact)
     private List<string> PaginateChapter(string html)
     {
         var pages = new List<string>();
@@ -186,16 +214,13 @@ public partial class MainPage : ContentPage
         return pages;
     }
 
-    // -------------------------------
-    // DISPLAY PAGE
-    // -------------------------------
     private void DisplayPage(int chapterIndex, int pageIndex)
     {
         var pages = _chapterPages[chapterIndex];
         string bodyHtml = pages[pageIndex];
 
-        // ⭐ Add page number at the bottom of the HTML
-        string pageNumberHtml = $"<div style='margin-top:40px; text-align:center; opacity:0.6;'>Page {pageIndex + 1}</div>";
+        string pageNumberHtml =
+            $"<div style='margin-top:40px; text-align:center; opacity:0.6;'>Page {pageIndex + 1} / {pages.Count}</div>";
 
         string finalHtml = $@"
 <html>
@@ -210,12 +235,13 @@ body {{
 }}
 img {{
     max-width: 100%;
+    height: auto;
 }}
 </style>
 </head>
 <body>
 {bodyHtml}
-{pageNumberHtml}   <!-- ⭐ Inserted here -->
+{pageNumberHtml}
 </body>
 </html>";
 
@@ -230,9 +256,6 @@ img {{
         SaveCurrentProgress();
     }
 
-    // -------------------------------
-    // NAVIGATION (SAVES PROGRESS)
-    // -------------------------------
     private void NextButton_Clicked(object sender, EventArgs e)
     {
         var pages = _chapterPages[_currentChapter];
@@ -281,9 +304,6 @@ img {{
         SaveProgressInternal();
     }
 
-    // -------------------------------
-    // TOGGLE CHAPTER LIST
-    // -------------------------------
     private void ToggleChapters_Clicked(object sender, EventArgs e)
     {
         _chaptersVisible = !_chaptersVisible;
@@ -294,9 +314,6 @@ img {{
         ChaptersView.IsVisible = _chaptersVisible;
     }
 
-    // -------------------------------
-    // SAVE / LOAD PROGRESS
-    // -------------------------------
     private void SaveProgressInternal()
     {
         string json = JsonSerializer.Serialize(_progress);
