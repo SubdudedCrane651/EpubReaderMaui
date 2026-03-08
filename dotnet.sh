@@ -1,0 +1,1 @@
+sudo dotnet publish -f net8.0-maccatalyst -c Release

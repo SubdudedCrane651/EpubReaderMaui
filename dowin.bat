@@ -1,0 +1,2 @@
+dotnet publish -f net9.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win10-x64 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+C:\Users\Public\Python\text2speech2.exe "The Windows version is completed, now you can test it"
